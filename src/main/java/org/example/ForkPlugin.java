@@ -3,45 +3,57 @@ package org.example;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class ForkPlugin {
-    public String forkPlugin(String pluginName) {
+    public String forkPlugin(String pluginName, String token) {
         String url = "https://api.github.com/repos/jenkinsci/" + pluginName + "/forks";
-        String token = "<Token>";
         String data = "{\"name\":\"" + pluginName + "\",\"default_branch_only\":true}";
 
-        data = data.replace("\"", "\\\"");
-
-        // Build the curl command
-        String[] command = {"curl", "-L", "-X", "POST",
-                "-H", "Accept: application/vnd.github.v3+json",
-                "-H", "Authorization: Bearer " + token,
-                "-H", "Content-Type: application/json",
-                "-d", data, url};
-
         StringBuilder output = new StringBuilder();
+
         try {
-            // Create process builder
-            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            // Create URL object
+            URL apiUrl = new URL(url);
 
-            // Redirect error stream to output
-            processBuilder.redirectErrorStream(true);
+            // Open connection
+            HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
 
-            // Start the process
-            Process process = processBuilder.start();
+            // Set request method to POST
+            connection.setRequestMethod("POST");
 
-            // Read the output
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+            // Set request headers
+            connection.setRequestProperty("Accept", "application/vnd.github.v3+json");
+            connection.setRequestProperty("Authorization", "Bearer " + token);
+            connection.setRequestProperty("Content-Type", "application/json");
+
+            // Enable input/output streams
+            connection.setDoOutput(true);
+
+            // Write data to the output stream
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = data.getBytes("utf-8");
+                os.write(input, 0, input.length);
             }
 
-            // Wait for the process to finish
-            int exitCode = process.waitFor();
-            output.append("\nExited with error code: ").append(exitCode);
+            // Get response code
+            int responseCode = connection.getResponseCode();
+            output.append("HTTP Response Code: ").append(responseCode).append("\n");
 
-        } catch (IOException | InterruptedException e) {
+            // Read the response
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+            }
+
+            // Disconnect
+            connection.disconnect();
+
+        } catch (IOException e) {
             e.printStackTrace();
         }
 

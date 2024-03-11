@@ -25,9 +25,7 @@ public class GitCloner {
 
             System.out.println("Repository cloned successfully to: " + tempDir.getAbsolutePath());
 
-            // Cleanup: Delete temporary directory if needed
-            // You can choose to delete the temp folder when you're done with it
-            // For temporary purposes, you might want to keep it
+            // Cleanup: Delete temporary directory after Executing the recipe
             // deleteTempFolder(tempDir);
         } catch (Exception e) {
             e.printStackTrace();
